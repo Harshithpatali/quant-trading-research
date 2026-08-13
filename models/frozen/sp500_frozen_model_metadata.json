@@ -1,0 +1,8 @@
+{
+  "candidate_model": "Random Forest",
+  "prediction_source": "d:\\quant-trading-research\\data\\interim\\sp500_walk_forward_predictions.parquet",
+  "target": "next_day_return > 0",
+  "threshold": 0.5,
+  "transaction_cost_bps": 5.0,
+  "slippage_bps": 2.0
+}

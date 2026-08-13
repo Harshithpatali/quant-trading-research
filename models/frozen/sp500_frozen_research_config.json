@@ -1,0 +1,12 @@
+{
+  "status": "FROZEN_RESEARCH_CONFIGURATION",
+  "candidate_model": "Random Forest",
+  "signal_type": "LONG_CASH",
+  "probability_threshold": 0.5,
+  "transaction_cost_bps": 5.0,
+  "slippage_bps": 2.0,
+  "total_cost_bps": 7.0,
+  "walk_forward_validation": true,
+  "parameter_optimization_after_freeze": false,
+  "do_not_tune_after_final_holdout": true
+}

@@ -1,0 +1,49 @@
+{
+  "package_name": "S&P 500 Direction Research Model",
+  "candidate_model": "Random Forest",
+  "files": [
+    {
+      "name": "sp500_direction_model.joblib",
+      "relative_path": "models\\production\\sp500_direction_model.joblib",
+      "bytes": 4740895
+    },
+    {
+      "name": "sp500_direction_model_metadata.json",
+      "relative_path": "models\\production\\sp500_direction_model_metadata.json",
+      "bytes": 1898
+    },
+    {
+      "name": "sp500_frozen_research_config.json",
+      "relative_path": "models\\production\\sp500_frozen_research_config.json",
+      "bytes": 363
+    },
+    {
+      "name": "prediction_input_output_schema.json",
+      "relative_path": "models\\production\\prediction_input_output_schema.json",
+      "bytes": 603
+    }
+  ],
+  "frozen_configuration": {
+    "status": "FROZEN_RESEARCH_CONFIGURATION",
+    "candidate_model": "Random Forest",
+    "signal_type": "LONG_CASH",
+    "probability_threshold": 0.5,
+    "transaction_cost_bps": 5.0,
+    "slippage_bps": 2.0,
+    "total_cost_bps": 7.0,
+    "walk_forward_validation": true,
+    "parameter_optimization_after_freeze": false,
+    "do_not_tune_after_final_holdout": true
+  },
+  "smoke_test": {
+    "status": "PASS",
+    "latest_probability_up": 0.555111658695767,
+    "latest_prediction": 1,
+    "latest_signal": "LONG"
+  },
+  "research_report": {
+    "verdict": "PARTIAL / INCONCLUSIVE EVIDENCE",
+    "final_test_start": "2015-04-07",
+    "final_test_end": "2026-08-10"
+  }
+}

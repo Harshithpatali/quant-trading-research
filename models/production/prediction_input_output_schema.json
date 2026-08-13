@@ -1,0 +1,23 @@
+{
+  "required_columns": [
+    "Date",
+    "Open",
+    "High",
+    "Low",
+    "Close",
+    "Adj.Close",
+    "Volume"
+  ],
+  "description": "The prediction service should receive chronological S&P 500 OHLCV history and generate the latest feature row using the same feature-generation logic used during research.",
+  "minimum_history_required": 253,
+  "output_columns": [
+    "Date",
+    "probability_up",
+    "prediction",
+    "signal"
+  ],
+  "signal_definition": {
+    "prediction": "1 when probability_up >= threshold",
+    "signal": "LONG when prediction=1, otherwise CASH"
+  }
+}

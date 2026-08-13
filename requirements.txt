@@ -1,0 +1,39 @@
+# S&P 500 Quant Trading Production Application
+# Python 3.12
+#
+# IMPORTANT:
+# The frozen production Random Forest model was trained with
+# scikit-learn 1.3.2. Keep this version unchanged unless the model
+# is intentionally retrained and revalidated.
+
+# Core data / numerical stack
+numpy==1.26.4
+pandas==2.2.3
+scipy==1.17.1
+
+# Frozen production ML runtime
+scikit-learn==1.3.2
+joblib==1.5.3
+
+# FastAPI Backend
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.5
+python-multipart==0.0.20
+
+# Streamlit Frontend
+streamlit==1.41.1
+plotly==5.24.1
+
+# Configuration
+python-dotenv==1.0.1
+
+# Supabase REST API
+requests==2.32.3
+
+# Testing
+pytest==8.3.4
+httpx==0.28.1
+
+# Production server
+gunicorn==23.0.0
