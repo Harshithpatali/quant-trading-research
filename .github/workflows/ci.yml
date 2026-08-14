@@ -54,6 +54,13 @@ jobs:
           python -c "from src.data.validator import validate_ohlcv; from src.features.engineering import FEATURE_COLUMNS; from src.models.predictor import ModelPredictor; from src.strategy.signal import generate_signal; from src.services.prediction_service import PredictionService; from backend.schemas import PredictionResponse; print('Production imports: OK'); print('Feature count:', len(FEATURE_COLUMNS))"
 
       - name: Run tests if present
+        env:
+          APP_ENV: test
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_KEY: test-key
+          SUPABASE_TABLE: sp500_daily
+          API_SECRET_KEY: test-secret
+          LOG_LEVEL: INFO
         run: |
           if [ -d tests ]; then
             pytest -q
