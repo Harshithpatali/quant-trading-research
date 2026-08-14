@@ -29,7 +29,14 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: requirements.txt
+      - name: Verify requirements file
+        run: |
+          echo "Repository requirements.txt:"
+          cat requirements.txt
+          echo "Checking yfinance requirement:"
+          grep -n "yfinance" requirements.txt
 
+          
       - name: Install production dependencies
         run: |
           python -m pip install --upgrade pip
