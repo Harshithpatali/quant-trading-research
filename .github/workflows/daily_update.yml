@@ -36,17 +36,17 @@ jobs:
           echo "Checking yfinance requirement:"
           grep -n "yfinance" requirements.txt
 
-          
+
       - name: Install production dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install --no-cache-dir -r requirements.txt
+          python -m pip install --no-cache-dir yfinance==0.2.66
 
       - name: Verify production dependencies
         run: |
           python -m pip show yfinance
-          python -c "import sys; print('Python:', sys.executable)"
-          python -c "import yfinance; print('yfinance:', yfinance.__version__); assert yfinance.__version__ == '0.2.66'"
+          python -c "import yfinance; print('yfinance:', yfinance.__version__)"
           python -c "import sklearn; print('scikit-learn:', sklearn.__version__); assert sklearn.__version__ == '1.3.2'"
 
       - name: Run daily market-data update
