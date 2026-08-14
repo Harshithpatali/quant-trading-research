@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 import plotly.graph_objects as go
@@ -16,180 +17,224 @@ API_BASE_URL = "https://quant-trading-research.onrender.com"
 REQUEST_TIMEOUT = 30
 
 
+# ---------------------------------------------------------------------
 # Page configuration
 # ---------------------------------------------------------------------
 
 st.set_page_config(
-    page_title="S&P 500 Quant Trading",
-    page_icon="📈",
+    page_title="S&P 500 Quant Terminal",
+    page_icon="▪",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Professional dark quant theme for Plotly
 pio.templates.default = "plotly_dark"
 
 
 # ---------------------------------------------------------------------
-# Custom CSS – institutional quant aesthetic
+# Design tokens
 # ---------------------------------------------------------------------
+# A trading-terminal system, not a dashboard theme: warm graphite (never
+# pure black), tabular monospace for every number, amber as the single
+# signature accent (the color every real market terminal reaches for),
+# and muted — not neon — up/down colors so the eye isn't fatigued by
+# an all-day screen.
+
+BG_VOID = "#0a0b0d"
+BG_PANEL = "#121317"
+BG_PANEL_RAISED = "#191b20"
+BORDER = "#262932"
+BORDER_SOFT = "#1a1c22"
+TEXT_PRIMARY = "#e9e6de"
+TEXT_SECONDARY = "#8b8f99"
+TEXT_MUTED = "#565b66"
+AMBER = "#d4a72c"
+AMBER_DIM = "#8a7128"
+UP = "#5fb787"
+UP_DIM = "#1c3226"
+DOWN = "#c96a5e"
+DOWN_DIM = "#33201d"
+
+MONO = "'IBM Plex Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace"
+SANS = "'IBM Plex Sans', 'Inter', system-ui, sans-serif"
+
 
 st.markdown(
-    """
+    f"""
     <style>
-    /* Global */
-    .stApp {
-        background-color: #0e1117;
-        color: #e0e0e0;
-    }
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
-    /* Typography */
-    h1, h2, h3, h4 {
-        font-family: 'Inter', 'Segoe UI', system-ui, sans-serif !important;
-        letter-spacing: -0.02em;
-        color: #f0f2f6 !important;
-    }
+    .stApp {{
+        background-color: {BG_VOID};
+        color: {TEXT_PRIMARY};
+        font-family: {SANS};
+    }}
 
-    /* Metric cards */
-    [data-testid="stMetric"] {
-        background: linear-gradient(145deg, #1a1f2e 0%, #141824 100%);
-        border: 1px solid #2a3142;
-        border-radius: 10px;
-        padding: 16px 18px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-    }
-    [data-testid="stMetricLabel"] {
-        color: #8b95a8 !important;
-        font-size: 0.78rem !important;
-        font-weight: 500 !important;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-    }
-    [data-testid="stMetricValue"] {
-        color: #f0f2f6 !important;
-        font-size: 1.55rem !important;
+    #MainMenu, footer {{ visibility: hidden; }}
+
+    h1, h2, h3, h4 {{
+        font-family: {SANS} !important;
+        letter-spacing: -0.01em;
+        color: {TEXT_PRIMARY} !important;
+    }}
+
+    /* everything numeric reads as terminal data */
+    [data-testid="stMetricValue"] {{
+        font-family: {MONO} !important;
+        color: {TEXT_PRIMARY} !important;
+        font-size: 1.5rem !important;
         font-weight: 600 !important;
         font-variant-numeric: tabular-nums;
-    }
-
-    /* Sidebar */
-    [data-testid="stSidebar"] {
-        background: #0b0e14;
-        border-right: 1px solid #1f2533;
-    }
-    [data-testid="stSidebar"] h1,
-    [data-testid="stSidebar"] h2,
-    [data-testid="stSidebar"] h3 {
-        color: #c9d1d9 !important;
-    }
-
-    /* Dividers */
-    hr {
-        border-color: #1f2533 !important;
-        margin: 1.2rem 0 !important;
-    }
-
-    /* Success / Warning / Error boxes */
-    .stAlert {
-        border-radius: 8px;
-        border: none;
-    }
-
-    /* Expander */
-    .streamlit-expanderHeader {
-        background-color: #141824;
-        border-radius: 8px;
-        color: #8b95a8 !important;
-        font-size: 0.9rem;
-    }
-
-    /* Buttons */
-    .stButton > button {
-        background: linear-gradient(135deg, #1e3a5f 0%, #162d4a 100%);
-        color: #e0e6ed;
-        border: 1px solid #2a4a6f;
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.2s ease;
-    }
-    .stButton > button:hover {
-        background: linear-gradient(135deg, #254a75 0%, #1c3a5c 100%);
-        border-color: #3a6a9f;
-        color: #ffffff;
-    }
-
-    /* Custom signal banner */
-    .signal-banner {
-        padding: 1.1rem 1.5rem;
-        border-radius: 10px;
-        font-size: 1.35rem;
-        font-weight: 600;
-        letter-spacing: 0.03em;
-        text-align: center;
-        margin-bottom: 1.5rem;
-        border: 1px solid transparent;
-    }
-    .signal-long {
-        background: linear-gradient(90deg, #0d3320 0%, #0f3d28 100%);
-        color: #3dd68c;
-        border-color: #1a5c3a;
-    }
-    .signal-cash {
-        background: linear-gradient(90deg, #3d2e0a 0%, #4a380c 100%);
-        color: #f0c14b;
-        border-color: #6b5210;
-    }
-    .signal-other {
-        background: linear-gradient(90deg, #3d1515 0%, #4a1a1a 100%);
-        color: #f07178;
-        border-color: #6b2a2a;
-    }
-
-    /* Section headers */
-    .section-header {
-        font-size: 0.85rem;
-        font-weight: 600;
+    }}
+    [data-testid="stMetricLabel"] {{
+        color: {TEXT_MUTED} !important;
+        font-family: {MONO} !important;
+        font-size: 0.68rem !important;
+        font-weight: 500 !important;
         text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: #6b7385;
-        margin-bottom: 0.75rem;
-    }
+        letter-spacing: 0.09em;
+    }}
+    [data-testid="stMetric"] {{
+        background: {BG_PANEL};
+        border: 1px solid {BORDER_SOFT};
+        border-top: 2px solid {AMBER_DIM};
+        border-radius: 3px;
+        padding: 14px 16px 12px 16px;
+    }}
 
-    /* Detail cards */
-    .detail-card {
-        background: #141824;
-        border: 1px solid #1f2533;
-        border-radius: 10px;
-        padding: 1.1rem 1.3rem;
+    [data-testid="stSidebar"] {{
+        background: {BG_VOID};
+        border-right: 1px solid {BORDER_SOFT};
+    }}
+    [data-testid="stSidebar"] * {{ color: {TEXT_SECONDARY} !important; }}
+    [data-testid="stSidebar"] strong {{
+        color: {TEXT_PRIMARY} !important;
+        font-family: {MONO} !important;
+        font-size: 0.78rem;
+        letter-spacing: 0.02em;
+    }}
+
+    hr {{ border-color: {BORDER_SOFT} !important; margin: 1.1rem 0 !important; }}
+
+    .stAlert {{ border-radius: 3px; border: 1px solid {BORDER_SOFT} !important; font-family: {MONO}; font-size: 0.82rem; }}
+
+    .streamlit-expanderHeader {{
+        background-color: {BG_PANEL};
+        border: 1px solid {BORDER_SOFT};
+        border-radius: 3px;
+        color: {TEXT_SECONDARY} !important;
+        font-family: {MONO};
+        font-size: 0.82rem;
+    }}
+
+    .stButton > button {{
+        background: {BG_PANEL_RAISED};
+        color: {TEXT_PRIMARY};
+        border: 1px solid {BORDER};
+        border-radius: 3px;
+        font-family: {MONO};
+        font-size: 0.82rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        transition: border-color 0.15s ease, color 0.15s ease;
+    }}
+    .stButton > button:hover {{
+        border-color: {AMBER_DIM};
+        color: {AMBER};
+    }}
+
+    /* ticker eyebrow */
+    .eyebrow {{
+        font-family: {MONO};
+        color: {TEXT_MUTED};
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }}
+
+    /* signal banner */
+    .signal-banner {{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.15rem 1.5rem;
+        border-radius: 3px;
+        margin-bottom: 1.4rem;
+        background: {BG_PANEL};
+        border: 1px solid {BORDER_SOFT};
+        border-left: 3px solid var(--sig-color);
+    }}
+    .signal-symbol {{
+        font-family: {MONO};
+        font-size: 1.9rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: var(--sig-color);
+    }}
+    .signal-sub {{
+        font-family: {MONO};
+        font-size: 0.74rem;
+        color: {TEXT_MUTED};
+        text-align: right;
+        line-height: 1.7;
+    }}
+
+    .panel {{
+        background: {BG_PANEL};
+        border: 1px solid {BORDER_SOFT};
+        border-radius: 3px;
+        padding: 1rem 1.2rem;
         height: 100%;
-    }
-    .detail-card h4 {
-        margin-top: 0;
-        margin-bottom: 0.8rem;
-        font-size: 0.95rem;
-        color: #c9d1d9 !important;
-    }
-    .detail-row {
+    }}
+    .panel h4 {{
+        margin: 0 0 0.7rem 0;
+        font-family: {MONO} !important;
+        font-size: 0.72rem !important;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: {TEXT_MUTED} !important;
+        font-weight: 600 !important;
+        border-bottom: 1px solid {BORDER_SOFT};
+        padding-bottom: 0.6rem;
+    }}
+    .row {{
         display: flex;
         justify-content: space-between;
-        padding: 0.35rem 0;
-        border-bottom: 1px solid #1a1f2e;
-        font-size: 0.9rem;
-    }
-    .detail-label {
-        color: #8b95a8;
-    }
-    .detail-value {
-        color: #e0e6ed;
-        font-weight: 500;
-        font-variant-numeric: tabular-nums;
-    }
+        padding: 0.4rem 0;
+        border-bottom: 1px solid {BORDER_SOFT};
+        font-family: {MONO};
+        font-size: 0.82rem;
+    }}
+    .row:last-child {{ border-bottom: none; }}
+    .row-label {{ color: {TEXT_SECONDARY}; }}
+    .row-value {{ color: {TEXT_PRIMARY}; font-weight: 500; font-variant-numeric: tabular-nums; }}
 
-    /* Caption / footer */
-    .footer-text {
-        color: #5c6578;
-        font-size: 0.78rem;
-    }
+    .lineage-index {{
+        font-family: {MONO};
+        color: {AMBER_DIM};
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+    }}
+    .lineage-title {{
+        font-family: {MONO};
+        font-size: 1.0rem;
+        font-weight: 600;
+        color: {TEXT_PRIMARY};
+        margin: 0.3rem 0 0.15rem 0;
+    }}
+    .lineage-sub {{
+        font-family: {MONO};
+        font-size: 0.74rem;
+        color: {TEXT_MUTED};
+    }}
+
+    .footer-text {{
+        color: {TEXT_MUTED};
+        font-family: {MONO};
+        font-size: 0.72rem;
+    }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -200,41 +245,24 @@ st.markdown(
 # API helpers
 # ---------------------------------------------------------------------
 
-def _get_json(
-    endpoint: str,
-) -> tuple[bool, dict[str, Any] | None, str | None]:
+def _get_json(endpoint: str) -> tuple[bool, dict[str, Any] | None, str | None]:
     """Call the public FastAPI production endpoint."""
     url = f"{API_BASE_URL}{endpoint}"
 
     try:
-        response = requests.get(
-            url,
-            timeout=REQUEST_TIMEOUT,
-        )
+        response = requests.get(url, timeout=REQUEST_TIMEOUT)
     except requests.RequestException as exc:
-        return False, None, (
-            "Unable to connect to the FastAPI backend. "
-            f"Details: {exc}"
-        )
+        return False, None, f"Unable to connect to the FastAPI backend. Details: {exc}"
 
     try:
         payload = response.json()
     except ValueError:
-        return False, None, (
-            f"Backend returned HTTP {response.status_code} "
-            "with a non-JSON response."
-        )
+        return False, None, f"Backend returned HTTP {response.status_code} with a non-JSON response."
 
     if not response.ok:
-        message = payload.get(
-            "message",
-            payload.get("detail", "Backend request failed."),
-        )
+        message = payload.get("message", payload.get("detail", "Backend request failed."))
         if isinstance(message, dict):
-            message = message.get(
-                "message",
-                "Backend request failed.",
-            )
+            message = message.get("message", "Backend request failed.")
         return False, payload, str(message)
 
     return True, payload, None
@@ -242,91 +270,50 @@ def _get_json(
 
 @st.cache_data(ttl=60, show_spinner=False)
 def get_prediction() -> dict[str, Any]:
-    """Fetch and cache the current production prediction."""
     success, payload, error = _get_json("/api/v1/predict")
     if not success or payload is None:
-        raise RuntimeError(
-            error or "Prediction request failed."
-        )
+        raise RuntimeError(error or "Prediction request failed.")
     return payload
 
 
 @st.cache_data(ttl=30, show_spinner=False)
 def get_health() -> dict[str, Any]:
-    """Fetch backend health information."""
     success, payload, error = _get_json("/health")
     if not success or payload is None:
-        raise RuntimeError(
-            error or "Health request failed."
-        )
+        raise RuntimeError(error or "Health request failed.")
     return payload
 
 
+# ---------------------------------------------------------------------
 # Header
 # ---------------------------------------------------------------------
 
-st.markdown(
-    """
-    <div style="
-        display:flex;
-        justify-content:space-between;
-        align-items:flex-end;
-        gap:20px;
-        padding:8px 0 4px 0;
-    ">
-        <div>
-            <div style="
-                color:#657089;
-                font-size:0.72rem;
-                font-weight:700;
-                letter-spacing:0.14em;
-                text-transform:uppercase;
-                margin-bottom:6px;
-            ">QUANT RESEARCH TERMINAL · S&P 500</div>
-            <div style="
-                color:#f5f7fb;
-                font-size:2.15rem;
-                font-weight:750;
-                letter-spacing:-0.045em;
-                line-height:1.05;
-            ">Market Intelligence</div>
-            <div style="
-                color:#7f8ba0;
-                font-size:0.92rem;
-                margin-top:8px;
-            ">Production inference · frozen Random Forest · live Supabase data</div>
-        </div>
-        <div style="
-            text-align:right;
-            color:#667289;
-            font-size:0.75rem;
-            line-height:1.6;
-        ">
-            <div style="color:#3dd68c;font-weight:700;">● LIVE BACKEND</div>
-            <div>FASTAPI / RENDER</div>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+now_utc = datetime.now(timezone.utc).strftime("%H:%M:%S UTC")
 
 st.markdown(
     f"""
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:20px; padding:6px 0 10px 0;">
+        <div>
+            <div class="eyebrow">QUANT RESEARCH TERMINAL — S&amp;P 500</div>
+            <div style="font-family:{MONO}; color:{TEXT_PRIMARY}; font-size:1.9rem; font-weight:700; letter-spacing:-0.01em; line-height:1.1; margin-top:6px;">
+                MARKET&nbsp;INTELLIGENCE
+            </div>
+            <div style="color:{TEXT_SECONDARY}; font-size:0.86rem; margin-top:8px; font-family:{SANS};">
+                Production inference · frozen Random Forest · live Supabase data
+            </div>
+        </div>
+        <div style="text-align:right; font-family:{MONO}; font-size:0.74rem; line-height:1.8;">
+            <div style="color:{UP}; font-weight:700;">●&nbsp; LIVE BACKEND</div>
+            <div style="color:{TEXT_MUTED};">{now_utc}</div>
+        </div>
+    </div>
     <div style="
-        margin-top:18px;
-        padding:9px 14px;
-        border:1px solid #1f2a3a;
-        background:#0d121b;
-        border-radius:8px;
-        display:flex;
-        justify-content:space-between;
-        color:#758197;
-        font-size:0.76rem;
-        font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+        padding:9px 14px; border:1px solid {BORDER_SOFT}; background:{BG_PANEL};
+        border-radius:3px; display:flex; justify-content:space-between;
+        color:{TEXT_MUTED}; font-size:0.74rem; font-family:{MONO};
     ">
-        <span>BACKEND</span>
-        <span style="color:#aab5c8;">{API_BASE_URL}</span>
-        
+        <span>ENDPOINT</span>
+        <span style="color:{TEXT_SECONDARY};">{API_BASE_URL}</span>
     </div>
     """,
     unsafe_allow_html=True,
@@ -334,47 +321,34 @@ st.markdown(
 
 st.divider()
 
-with st.sidebar:
-    st.markdown(
-        """
-        <div style="
-            font-size:0.72rem;
-            color:#667289;
-            font-weight:700;
-            letter-spacing:0.13em;
-            text-transform:uppercase;
-            margin-bottom:8px;
-        ">Terminal Controls</div>
-        """,
-        unsafe_allow_html=True,
-    )
 
-    if st.button(
-        "↻  Refresh Market State",
-        use_container_width=True,
-    ):
+# ---------------------------------------------------------------------
+# Sidebar
+# ---------------------------------------------------------------------
+
+with st.sidebar:
+    st.markdown('<div class="eyebrow" style="margin-bottom:10px;">Terminal Controls</div>', unsafe_allow_html=True)
+
+    if st.button("↻  REFRESH MARKET STATE", use_container_width=True):
         get_prediction.clear()
         get_health.clear()
         st.rerun()
 
     st.markdown("---")
-    st.markdown("**Execution mode**")
+    st.markdown("**EXECUTION MODE**")
     st.caption("Inference only · no orders are executed")
-    st.markdown("**Data source**")
+    st.markdown("**DATA SOURCE**")
     st.caption("Supabase · `sp500_daily`")
-    st.markdown("**Model**")
+    st.markdown("**MODEL**")
     st.caption("Random Forest · 26 features")
     st.markdown("---")
     st.markdown(
-        '<p class="footer-text">'
-        "Cached inference: 60 seconds<br>"
-        "Health check: 30 seconds<br>"
-       
-        "</p>",
+        '<p class="footer-text">CACHE&nbsp;·&nbsp;prediction 60s<br>CACHE&nbsp;·&nbsp;health 30s</p>',
         unsafe_allow_html=True,
     )
 
 
+# ---------------------------------------------------------------------
 # Backend health
 # ---------------------------------------------------------------------
 
@@ -392,29 +366,26 @@ h1, h2, h3 = st.columns(3)
 
 with h1:
     if health_status == "healthy":
-        st.success("● SYSTEM · HEALTHY")
+        st.success("●  SYSTEM · HEALTHY")
     else:
-        st.error("● SYSTEM · UNHEALTHY")
+        st.error("●  SYSTEM · UNHEALTHY")
 
 with h2:
     if supabase.get("status") == "connected":
-        st.success(
-            f"● SUPABASE · {supabase.get('rows', 0):,} ROWS"
-        )
+        st.success(f"●  SUPABASE · {supabase.get('rows', 0):,} ROWS")
     else:
-        st.error("● SUPABASE · UNAVAILABLE")
+        st.error("●  SUPABASE · UNAVAILABLE")
 
 with h3:
     if health_model.get("status") == "loaded":
-        st.success(
-            f"● MODEL · {health_model.get('feature_count', 0)} FEATURES"
-        )
+        st.success(f"●  MODEL · {health_model.get('feature_count', 0)} FEATURES")
     else:
-        st.error("● MODEL · UNAVAILABLE")
+        st.error("●  MODEL · UNAVAILABLE")
 
 st.divider()
 
 
+# ---------------------------------------------------------------------
 # Current prediction
 # ---------------------------------------------------------------------
 
@@ -435,45 +406,22 @@ model_info = prediction.get("model", {})
 data_info = prediction.get("data", {})
 
 if signal == "LONG":
-    banner_class = "signal-long"
-    signal_icon = "▲"
-    signal_subtitle = "Bullish model classification"
+    sig_color, sig_icon, sig_sub = UP, "▲", "Bullish model classification"
 elif signal == "CASH":
-    banner_class = "signal-cash"
-    signal_icon = "■"
-    signal_subtitle = "No long exposure"
+    sig_color, sig_icon, sig_sub = AMBER, "■", "No long exposure"
 else:
-    banner_class = "signal-other"
-    signal_icon = "●"
-    signal_subtitle = "Review model output"
+    sig_color, sig_icon, sig_sub = DOWN, "●", "Review model output"
 
 st.markdown(
     f"""
-    <div class="signal-banner {banner_class}" style="
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        text-align:left;
-        padding:1.15rem 1.45rem;
-    ">
+    <div class="signal-banner" style="--sig-color:{sig_color};">
         <div>
-            <div style="
-                font-size:0.70rem;
-                opacity:0.72;
-                letter-spacing:0.13em;
-                margin-bottom:5px;
-            ">MODEL SIGNAL</div>
-            <div style="font-size:1.65rem;">
-                {signal_icon}&nbsp; {signal}
-            </div>
+            <div class="eyebrow" style="margin-bottom:6px;">MODEL SIGNAL</div>
+            <div class="signal-symbol">{sig_icon}&nbsp; {signal}</div>
         </div>
-        <div style="
-            font-size:0.80rem;
-            opacity:0.78;
-            text-align:right;
-        ">
-            <div>{signal_subtitle}</div>
-            <div style="margin-top:4px;">Prediction date · {prediction_date}</div>
+        <div class="signal-sub">
+            <div>{sig_sub}</div>
+            <div>PREDICTION DATE · {prediction_date}</div>
         </div>
     </div>
     """,
@@ -481,137 +429,78 @@ st.markdown(
 )
 
 col1, col2, col3, col4, col5 = st.columns(5)
-
 with col1:
-    st.metric("Probability UP", f"{probability_up:.2%}")
+    st.metric("Probability Up", f"{probability_up:.2%}")
 with col2:
-    st.metric("Probability DOWN", f"{probability_down:.2%}")
+    st.metric("Probability Down", f"{probability_down:.2%}")
 with col3:
     st.metric("Model Threshold", f"{threshold:.2%}")
 with col4:
     st.metric("Signal Confidence", f"{confidence:.2%}")
 with col5:
-    st.metric(
-        "Position",
-        "100%" if signal == "LONG" else "0%",
-    )
+    st.metric("Position", "100%" if signal == "LONG" else "0%")
 
 st.markdown("")
 
-chart_col, intelligence_col = st.columns(
-    [1.7, 1],
-    gap="large",
-)
+chart_col, intelligence_col = st.columns([1.7, 1], gap="large")
 
 with chart_col:
-    st.markdown(
-        '<div class="section-header">Signal Probability Surface</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="eyebrow" style="margin-bottom:10px;">Signal Probability Surface</div>', unsafe_allow_html=True)
 
     figure = go.Figure()
-
     figure.add_trace(
         go.Bar(
             x=["UP", "DOWN"],
             y=[probability_up, probability_down],
-            text=[
-                f"{probability_up:.2%}",
-                f"{probability_down:.2%}",
-            ],
-            textposition="auto",
-            marker=dict(
-                color=["#3dd68c", "#f07178"],
-                line=dict(width=0),
-            ),
+            text=[f"{probability_up:.2%}", f"{probability_down:.2%}"],
+            textposition="outside",
+            textfont=dict(family=MONO, size=13, color=TEXT_PRIMARY),
+            marker=dict(color=[UP, DOWN], line=dict(width=0)),
             width=0.42,
             hovertemplate="%{x}: %{y:.2%}<extra></extra>",
         )
     )
-
     figure.add_hline(
         y=threshold,
         line_dash="dot",
-        line_color="#f0c14b",
-        line_width=1.4,
-        annotation_text=f"threshold {threshold:.0%}",
+        line_color=AMBER,
+        line_width=1.3,
+        annotation_text=f"THRESHOLD {threshold:.0%}",
         annotation_position="top right",
-        annotation_font_color="#f0c14b",
+        annotation_font_color=AMBER,
         annotation_font_size=11,
+        annotation_font_family=MONO,
     )
-
     figure.update_layout(
         height=390,
-        margin=dict(l=20, r=20, t=28, b=35),
+        margin=dict(l=20, r=20, t=30, b=35),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        yaxis=dict(
-            title="",
-            range=[0, 1],
-            tickformat=".0%",
-            gridcolor="#1f2533",
-            zeroline=False,
-            color="#7f8ba0",
-        ),
-        xaxis=dict(
-            title="",
-            color="#7f8ba0",
-            tickfont=dict(size=13),
-        ),
-        font=dict(
-            family="Inter, system-ui, sans-serif",
-            color="#e0e6ed",
-        ),
+        yaxis=dict(range=[0, 1], tickformat=".0%", gridcolor=BORDER_SOFT, zeroline=False, color=TEXT_SECONDARY),
+        xaxis=dict(color=TEXT_SECONDARY, tickfont=dict(size=13, family=MONO)),
+        font=dict(family=MONO, color=TEXT_PRIMARY),
         showlegend=False,
         bargap=0.38,
     )
-
-    st.plotly_chart(
-        figure,
-        use_container_width=True,
-    )
+    st.plotly_chart(figure, use_container_width=True)
 
 with intelligence_col:
-    st.markdown(
-        '<div class="section-header">Model Intelligence</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="eyebrow" style="margin-bottom:10px;">Model Intelligence</div>', unsafe_allow_html=True)
 
     rows_used = data_info.get("rows_used", 0)
-    validation = (
-        "PASS"
-        if data_info.get("validation_passed")
-        else "FAIL"
-    )
+    validation = "PASS" if data_info.get("validation_passed") else "FAIL"
+    validation_color = UP if validation == "PASS" else DOWN
 
     st.markdown(
         f"""
-        <div class="detail-card" style="min-height:310px;">
+        <div class="panel" style="min-height:310px;">
             <h4>Inference Context</h4>
-            <div class="detail-row">
-                <span class="detail-label">Algorithm</span>
-                <span class="detail-value">{model_info.get('type', 'Unknown')}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Features</span>
-                <span class="detail-value">{model_info.get('feature_count', 'Unknown')}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Rows in window</span>
-                <span class="detail-value">{rows_used:,}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Threshold</span>
-                <span class="detail-value">{threshold:.2%}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Data validation</span>
-                <span class="detail-value">{validation}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Inference date</span>
-                <span class="detail-value">{prediction_date}</span>
-            </div>
+            <div class="row"><span class="row-label">Algorithm</span><span class="row-value">{model_info.get('type', 'Unknown')}</span></div>
+            <div class="row"><span class="row-label">Features</span><span class="row-value">{model_info.get('feature_count', 'Unknown')}</span></div>
+            <div class="row"><span class="row-label">Rows in window</span><span class="row-value">{rows_used:,}</span></div>
+            <div class="row"><span class="row-label">Threshold</span><span class="row-value">{threshold:.2%}</span></div>
+            <div class="row"><span class="row-label">Data validation</span><span class="row-value" style="color:{validation_color};">{validation}</span></div>
+            <div class="row"><span class="row-label">Inference date</span><span class="row-value">{prediction_date}</span></div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -620,23 +509,21 @@ with intelligence_col:
 st.divider()
 
 
+# ---------------------------------------------------------------------
 # Production data lineage
 # ---------------------------------------------------------------------
 
-st.markdown(
-    '<div class="section-header">Production Data Lineage</div>',
-    unsafe_allow_html=True,
-)
+st.markdown('<div class="eyebrow" style="margin-bottom:10px;">Production Data Lineage</div>', unsafe_allow_html=True)
 
 lineage1, lineage2, lineage3, lineage4 = st.columns(4)
 
 with lineage1:
     st.markdown(
-        """
-        <div class="detail-card">
-            <div class="section-header">01 · SOURCE</div>
-            <div style="font-size:1.0rem;font-weight:600;">Supabase</div>
-            <div class="footer-text">sp500_daily</div>
+        f"""
+        <div class="panel">
+            <div class="lineage-index">01 · SOURCE</div>
+            <div class="lineage-title">Supabase</div>
+            <div class="lineage-sub">sp500_daily</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -645,13 +532,10 @@ with lineage1:
 with lineage2:
     st.markdown(
         f"""
-        <div class="detail-card">
-            <div class="section-header">02 · WINDOW</div>
-            <div style="font-size:1.0rem;font-weight:600;">{rows_used:,} rows</div>
-            <div class="footer-text">
-                {data_info.get('date_start', 'Unknown')}
-                → {data_info.get('date_end', 'Unknown')}
-            </div>
+        <div class="panel">
+            <div class="lineage-index">02 · WINDOW</div>
+            <div class="lineage-title">{rows_used:,} rows</div>
+            <div class="lineage-sub">{data_info.get('date_start', 'Unknown')} → {data_info.get('date_end', 'Unknown')}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -659,11 +543,11 @@ with lineage2:
 
 with lineage3:
     st.markdown(
-        """
-        <div class="detail-card">
-            <div class="section-header">03 · MODEL</div>
-            <div style="font-size:1.0rem;font-weight:600;">Random Forest</div>
-            <div class="footer-text">Frozen production artifact</div>
+        f"""
+        <div class="panel">
+            <div class="lineage-index">03 · MODEL</div>
+            <div class="lineage-title">Random Forest</div>
+            <div class="lineage-sub">Frozen production artifact</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -672,12 +556,10 @@ with lineage3:
 with lineage4:
     st.markdown(
         f"""
-        <div class="detail-card">
-            <div class="section-header">04 · OUTPUT</div>
-            <div style="font-size:1.0rem;font-weight:600;">{signal}</div>
-            <div class="footer-text">
-                Position = {'1.0' if signal == 'LONG' else '0.0'}
-            </div>
+        <div class="panel">
+            <div class="lineage-index">04 · OUTPUT</div>
+            <div class="lineage-title" style="color:{sig_color};">{signal}</div>
+            <div class="lineage-sub">Position = {'1.0' if signal == 'LONG' else '0.0'}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -685,10 +567,7 @@ with lineage4:
 
 st.markdown("")
 
-with st.expander(
-    "View raw production API response",
-    expanded=False,
-):
+with st.expander("View raw production API response", expanded=False):
     st.json(prediction)
 
 st.divider()
